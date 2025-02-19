@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom T-Shirt Design Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: white;
+            text-align: center;
+            overflow-x: hidden;
+            background-color: #000;
+        }
+
+        #bg-img {
+            background: url('static/pngegg.png') center/cover no-repeat;
+            background-position: left/center;
+            background-size: 1200px 900px;
+        }
+
+        /* Title Animation */
+        .title {
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            opacity: 0;
+            transform: translateY(-50px);
+            animation: fadeInSlide 2s forwards;
+            z-index: 1;
+        }
+
+        @keyframes fadeInSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Prompt Section Animation */
+        #prompt-container, #canvas-container {
+            opacity: 0;
+            transform: translateY(50px);
+            animation: fadeIn 1s forwards;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Input and Buttons */
+        #prompt-input {
+            width: 300px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+        }
+
+        #generate-btn {
+            background: #3498db;
+        }
+
+        #clear-btn {
+            background: #e74c3c;
+        }
+
+        #download-btn {
+            background: #2ecc71;
+        }
+
+        #upload-btn {
+            background: #9b59b6;
+        }
+
+        /* Loading Spinner */
+        #loading-spinner {
+            display: none;
+            margin-top: 10px;
+            font-size: 1em;
+            color: white;
+        }
+
+        /* Canvas Section */
+        #canvas-container {
+            margin: 20px auto;
+            border: 2px solid white;
+            width: 500px;
+            height: 500px;
+            background: #f4f4f4;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #tshirt-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('https://i.imgur.com/5Rh3VnX.png') center center no-repeat;
+            background-size: cover;
+            z-index: 0;
+        }
+
+        canvas {
+            position: relative;
+            z-index: 1;
+        }
+
+        footer {
+            margin-top: 20px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div id="bg-img">
+    <div class="parallax">
+        <h1 class="title">Custom T-shirt Design Generator</h1>
+    </div>
+
+    <!-- Prompt Container -->
+    <div id="prompt-container">
+        <input type="text" id="prompt-input" placeholder="Enter your design prompt" />
+        <button id="generate-btn" onclick="generateDesign()">Generate Design</button>
+        <button id="clear-btn" onclick="clearCanvas()">Clear Design</button>
+        <button id="download-btn" onclick="downloadDesign()">Download Design</button>
+        <div id="loading-spinner">Generating design... Please wait.</div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container">
+        <div id="tshirt-bg"></div>
+        <canvas id="tshirt-canvas" width="500" height="500"></canvas>
+    </div>
+
+    <!-- Upload T-Shirt Template -->
+    <div id="upload-container">
+        <label for="upload-tshirt-template">Upload T-Shirt Template:</label>
+        <input type="file" id="upload-tshirt-template" accept="image/*" onchange="uploadTshirtTemplate(event)" />
+    </div>
+
+    <footer>
+        <p>&copy; 2024 T-Shirt Design Generator. All rights reserved.</p>
+    </footer>
+    </div>
+
+    <script>
+        const canvas = new fabric.Canvas('tshirt-canvas');
+
+        // Function to generate design based on prompt
+        function generateDesign() {
+            const prompt = document.getElementById('prompt-input').value;
+
+            if (!prompt) {
+                alert("Please enter a prompt.");
+                return;
+            }
+
+            const spinner = document.getElementById('loading-spinner');
+            spinner.style.display = 'block';
+
+            fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt })
+            })
+            .then(response => response.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                if (data.image_url) {
+                    fabric.Image.fromURL(data.image_url, function(img) {
+                        img.scaleToWidth(300);
+                        img.scaleToHeight(300);
+                        img.left = 100;
+                        img.top = 100;
+                        canvas.clear();
+                        canvas.add(img);
+                        canvas.renderAll();
+                    });
+                } else {
+                    alert("Error generating design. Try again!");
+                }
+            })
+            .catch(error => {
+                spinner.style.display = 'none';
+                console.error("Error:", error);
+                alert("An error occurred. Please try again later.");
+            });
+        }
+
+        // Function to clear the canvas
+        function clearCanvas() {
+            canvas.clear();
+            canvas.renderAll();
+        }
+
+        // Function to download the design
+        function downloadDesign() {
+            const link = document.createElement('a');
+            link.download = 'tshirt_design.png';
+            link.href = canvas.toDataURL({ format: 'png' });
+            link.click();
+        }
+
+        // Function to upload and set a new T-Shirt template
+        function uploadTshirtTemplate(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const tshirtBg = document.getElementById('tshirt-bg');
+                    tshirtBg.style.backgroundImage = `url('${e.target.result}')`;
+                    tshirtBg.style.animation = 'fadeIn 1s forwards';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+</body>
+</html>
