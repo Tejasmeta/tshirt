@@ -4,8 +4,11 @@ import os
 
 app = Flask(__name__)
 
+# Use environment variable for Hugging Face token (important for security)
+HF_TOKEN = os.environ.get("HF_TOKEN")  # Set this in Render's environment variables
+
 # Initialize the Hugging Face InferenceClient
-client = InferenceClient(model="stabilityai/stable-diffusion-3.5-large", token="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")  # Replace with your token
+client = InferenceClient(model="stabilityai/stable-diffusion-3.5-large", token=HF_TOKEN)
 
 # Route to render the HTML template
 @app.route('/')
@@ -53,4 +56,6 @@ if __name__ == '__main__':
     if not os.path.exists('static'):
         os.makedirs('static')
 
-    app.run(debug=True)
+    # Fix Render.com port binding issue
+    port = int(os.environ.get("PORT", 5000))  # Render assigns a dynamic port
+    app.run(host="0.0.0.0", port=port, debug=True)
